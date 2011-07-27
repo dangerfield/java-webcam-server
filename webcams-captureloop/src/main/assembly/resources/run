@@ -1,0 +1,15 @@
+#!/bin/bash
+
+export XUGGLE_HOME=/usr/local/xuggler
+export LD_LIBRARY_PATH=$XUGGLE_HOME/lib:$LD_LIBRARY_PATH
+export PATH=$XUGGLE_HOME/bin:$PATH
+
+# :/usr/local/xuggler/share/java/jars/xuggle-xuggler.jar
+
+LIB=`dirname $0`/lib
+CLASSPATH=.
+for i in $( ls ${LIB}/*.jar ); do
+  CLASSPATH=${CLASSPATH}:$i
+done
+
+java -cp $CLASSPATH uk.ac.warwick.radio.media.webcams.local.Loop `dirname $0`/beans.xml
