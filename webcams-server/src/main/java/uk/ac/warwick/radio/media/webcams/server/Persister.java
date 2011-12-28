@@ -5,11 +5,11 @@ import java.util.concurrent.BlockingQueue;
 
 import uk.ac.warwick.radio.media.webcams.Image;
 
-public class Logger extends Thread {
+public class Persister extends Thread {
   protected BlockingQueue<Image> queue;
   protected IHistoryDao dao;
 
-  public Logger(BlockingQueue<Image> queue, IHistoryDao dao) {
+  public Persister(BlockingQueue<Image> queue, IHistoryDao dao) {
     this.queue = queue;
     this.dao = dao;
     this.start();
@@ -17,7 +17,6 @@ public class Logger extends Thread {
 
   @Override
   public void run() {
-    try {
       while (true) {
         try {
           Image temp = (Image) ((Image) queue.take()).clone();
@@ -29,12 +28,10 @@ public class Logger extends Thread {
         } catch (IOException e) {
           // TODO Auto-generated catch block
           e.printStackTrace();
+        } catch (Throwable e) {
+            e.printStackTrace();
         }
-      }
-    } catch (CloneNotSupportedException e) {
-      // TODO Auto-generated catch block
-      e.printStackTrace();
-    }
+  }
   }
 
   public void trySave(Image image) {

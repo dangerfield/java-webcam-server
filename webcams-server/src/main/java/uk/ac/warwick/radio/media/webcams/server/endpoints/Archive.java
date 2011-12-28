@@ -88,28 +88,28 @@ public class Archive implements IArchive {
     return getWebcamCustom(time, id, 320, 240, overlay, crop);
   }
 
-  public Response getZip(String[] id, Date start, Date end, int x, int y,
-      boolean overlay, boolean crop) throws IOException {
-    String outFilename = "BOB";
-    ZipOutputStream zip = new ZipOutputStream(new FileOutputStream(outFilename));
-    Iterator<Image> itr = dao.getImageIteratorFor(id, start, end);
-    while (itr.hasNext()) {
-      zip.putNextEntry(new ZipEntry("F"));
-      
-      Imaging image = new Imaging(itr.next());
-
-      if (crop)
-        image.scaleAndCropTo(x, y);
-      else
-        image.scaleProportionallyToWithin(x, y);
-
-      if (overlay)
-        image.overlay();
-      zip.write(image.get());
-      zip.closeEntry();
-    }
-    zip.
-    return Response.ok(zip).build();
-  }
+//  public Response getZip(String[] id, Date start, Date end, int x, int y,
+//      boolean overlay, boolean crop) throws IOException {
+//    String outFilename = "BOB";
+//    ZipOutputStream zip = new ZipOutputStream(new FileOutputStream(outFilename));
+//    Iterator<Image> itr = dao.getImageIteratorFor(id, start, end);
+//    while (itr.hasNext()) {
+//      zip.putNextEntry(new ZipEntry("F"));
+//
+//      Imaging image = new Imaging(itr.next());
+//
+//      if (crop)
+//        image.scaleAndCropTo(x, y);
+//      else
+//        image.scaleProportionallyToWithin(x, y);
+//
+//      if (overlay)
+//        image.overlay();
+//      zip.write(image.get());
+//      zip.closeEntry();
+//    }
+//    zip.
+//    return Response.ok(zip).build();
+//  }
 
 }

@@ -22,8 +22,8 @@
 	</bean>
 
 	<bean id="cameras" class="uk.ac.warwick.radio.media.webcams.server.RemoteWebcams">
-		<property name="logger">
-			<bean id="logger" class="uk.ac.warwick.radio.media.webcams.server.Logger">
+		<property name="persister">
+			<bean id="persister" class="uk.ac.warwick.radio.media.webcams.server.Persister">
 				<constructor-arg>
 					<bean class="java.util.concurrent.LinkedBlockingQueue">
 						<constructor-arg value="100" />

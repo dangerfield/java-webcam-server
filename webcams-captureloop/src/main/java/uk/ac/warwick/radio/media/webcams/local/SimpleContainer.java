@@ -1,20 +1,17 @@
 package uk.ac.warwick.radio.media.webcams.local;
 
-import java.util.ArrayList;
-import java.util.Calendar;
-import java.util.Collection;
-import java.util.HashMap;
-import java.util.Properties;
-import java.util.Timer;
-import java.util.TimerTask;
+import java.util.*;
 
 import javax.ws.rs.core.Response;
-
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import uk.ac.warwick.radio.media.webcams.Image;
 import uk.ac.warwick.radio.media.webcams.MultipleImages;
 import uk.ac.warwick.radio.media.webcams.server.endpoints.IPublish;
 
 public class SimpleContainer implements ICameraContainer {
+    final Logger logger = LoggerFactory.getLogger(SimpleContainer.class);
+
   protected IPublish client;
   protected ArrayList<Timer> timers = new ArrayList<Timer>();
   protected Properties properties;
@@ -44,20 +41,22 @@ public class SimpleContainer implements ICameraContainer {
     timers.add(timer);
   }
 
-  protected static class Container {
-    protected HashMap<String, Image> data = new HashMap<String, Image>();
+  protected class Container {
+    protected Map<String, Image> data = initMap();
     protected Object notifyObject = new Object();
 
+    protected Map<String, Image> initMap() {
+        return Collections.synchronizedMap(new HashMap<String, Image>());
+    }
     public synchronized Collection<Image> pull() {
       Collection<Image> old = data.values();
-      data = new HashMap<String, Image>();
+      data = initMap();
       return old;
     }
 
     public synchronized void put(Image upload) {
       if (data.containsKey(upload.getCamera().getId())) {
-        System.err.printf("[WARN] %tc - %s - frame dropped%n", Calendar
-            .getInstance(), upload.getCamera().getId());
+        logger.warn("{} frame dropped", upload.getCamera().getId());
       }
       data.put(upload.getCamera().getId(), upload);
       synchronized (notifyObject) {
@@ -93,15 +92,12 @@ public class SimpleContainer implements ICameraContainer {
           Response response = client.massUpdate(new MultipleImages(data
               .pull()));
           if (response.getStatus() != 200) {
-            System.err
-                .printf(
-                    "[ERROR] %tc - error in uploading frames. recieved response %d from server%n",
-                    Calendar.getInstance(), response.getStatus());
+            logger.error(
+                    "Error in uploading frames. Recieved response {} from server",
+                    response.getStatus());
           }
         } catch (org.apache.cxf.interceptor.Fault e) {
-          System.err.printf(
-              "[ERROR] %tc - error in uploading frames. connection problem%n",
-              Calendar.getInstance());
+            logger.error("Error in uploading frames. connection problem");
         }
       }
     }
@@ -119,11 +115,13 @@ public class SimpleContainer implements ICameraContainer {
       try {
         data.put(this.camera.getImage());
       } catch (ImageCaptureException e) {
-        System.err
-            .printf(
-                "[ERROR] %tc - %s - error in capturing image. Capture exception was thrown%n",
-                Calendar.getInstance(), this.camera.getId());
+          logger.error(
+                "Error in capturing image on camera {}. Capture exception was thrown",
+                this.camera.getId());
         e.printStackTrace();
+      } catch (Throwable e) {
+          logger.error("Error in capturing image on camera {}. Exception was thrown",
+                  this.camera.getId());
       }
     }
   }

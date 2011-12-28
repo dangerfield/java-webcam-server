@@ -14,14 +14,14 @@ import uk.ac.warwick.radio.media.webcams.Webcams;
 public class RemoteWebcams {
   protected Map<String, Image> remoteWebcams = Collections.synchronizedMap(new HashMap<String, Image>());
 
-  protected Logger logger;
+  protected Persister persister;
   
-  public Logger getLogger() {
-    return logger;
+  public Persister getPersister() {
+    return persister;
   }
 
-  public void setLogger(Logger logger) {
-    this.logger = logger;
+  public void setPersister(Persister persister) {
+    this.persister = persister;
   }
 
   public boolean contains(String image) {
@@ -44,8 +44,8 @@ public class RemoteWebcams {
   
   public void set(Image image) {
     remoteWebcams.put(image.getCamera().getId(), image);
-    if(logger != null)
-      logger.trySave(image);
+    if(persister != null)
+      persister.trySave(image);
     
   }
   public void set(MultipleImages webcams){
