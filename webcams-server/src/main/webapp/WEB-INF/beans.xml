@@ -1,117 +1,110 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <beans xmlns="http://www.springframework.org/schema/beans"
-	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:aop="http://www.springframework.org/schema/aop"
-	xmlns:context="http://www.springframework.org/schema/context" xmlns:tx="http://www.springframework.org/schema/tx"
-	xmlns:jaxrs="http://cxf.apache.org/jaxrs"
-	xsi:schemaLocation="
-		http://www.springframework.org/schema/beans 
+       xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+       xmlns:context="http://www.springframework.org/schema/context" xmlns:tx="http://www.springframework.org/schema/tx"
+       xmlns:jaxrs="http://cxf.apache.org/jaxrs"
+       xsi:schemaLocation="http://www.springframework.org/schema/beans
 		http://www.springframework.org/schema/beans/spring-beans-3.0.xsd
 		http://www.springframework.org/schema/context
 		http://www.springframework.org/schema/context/spring-context-3.0.xsd
 		http://www.springframework.org/schema/tx
 		http://www.springframework.org/schema/tx/spring-tx-3.0.xsd
-		http://www.springframework.org/schema/aop 
-		http://www.springframework.org/schema/aop/spring-aop-3.0.xsd
+
+
 		http://cxf.apache.org/jaxrs
 		http://cxf.apache.org/schemas/jaxrs.xsd">
 
-	<import resource="classpath:META-INF/cxf/cxf.xml" />
-	<import resource="classpath:META-INF/cxf/cxf-servlet.xml" />
-	<bean id="historyDao" class="uk.ac.warwick.radio.media.webcams.server.HistoryDao">
-		<property name="sessionFactory" ref="sessionFactory" />
-	</bean>
+    <import resource="classpath:META-INF/cxf/cxf.xml"/>
+    <import resource="classpath:META-INF/cxf/cxf-servlet.xml"/>
+    <bean id="historyDao" class="uk.ac.warwick.radio.media.webcams.server.HistoryDao">
+        <property name="sessionFactory" ref="sessionFactory"/>
+    </bean>
 
-	<bean id="cameras" class="uk.ac.warwick.radio.media.webcams.server.RemoteWebcams">
-		<property name="persister">
-			<bean id="persister" class="uk.ac.warwick.radio.media.webcams.server.Persister">
-				<constructor-arg>
-					<bean class="java.util.concurrent.LinkedBlockingQueue">
-						<constructor-arg value="100" />
-					</bean>
-				</constructor-arg>
-				<constructor-arg>
-					<ref bean="historyDao" />
-				</constructor-arg>
-			</bean>
-		</property>
-	</bean>
+    <bean id="cameras" class="uk.ac.warwick.radio.media.webcams.server.RemoteWebcams">
+        <property name="persister">
+            <bean id="persister" class="uk.ac.warwick.radio.media.webcams.server.Persister">
+                <constructor-arg>
+                    <bean class="java.util.concurrent.LinkedBlockingQueue">
+                        <constructor-arg value="100"/>
+                    </bean>
+                </constructor-arg>
+                <constructor-arg>
+                    <ref bean="historyDao"/>
+                </constructor-arg>
+            </bean>
+        </property>
+    </bean>
 
-	<bean id="cleaner" class="uk.ac.warwick.radio.media.webcams.server.Cleaner">
-		<constructor-arg>
-			<ref bean="cameras" />
-		</constructor-arg>
-	</bean>
+    <jaxrs:server id="view" address="/">
+        <jaxrs:serviceBeans>
+            <bean class="uk.ac.warwick.radio.media.webcams.server.endpoints.View">
+                <constructor-arg>
+                    <ref bean="cameras"/>
+                </constructor-arg>
+            </bean>
+            <bean class="uk.ac.warwick.radio.media.webcams.server.endpoints.Publish">
+                <constructor-arg>
+                    <ref bean="cameras"/>
+                </constructor-arg>
+            </bean>
+            <bean class="uk.ac.warwick.radio.media.webcams.server.endpoints.Archive">
+                <constructor-arg>
+                    <ref bean="historyDao"/>
+                </constructor-arg>
+            </bean>
+        </jaxrs:serviceBeans>
+        <jaxrs:properties>
+            <entry key="mtom-enabled" value="true"/>
+            <entry key="mtom-threshold" value="0"/>
+        </jaxrs:properties>
+        <jaxrs:providers>
+            <bean
+                    class="uk.ac.warwick.radio.media.webcams.server.providers.DateParameterHandler"/>
+            <bean
+                    class="uk.ac.warwick.radio.media.webcams.server.providers.ArchiveExceptionMapper"/>
+            <bean
+                    class="uk.ac.warwick.radio.media.webcams.server.providers.IOExceptionMapper"/>
+            <bean
+                    class="uk.ac.warwick.radio.media.webcams.server.providers.ViewExceptionMapper"/>
+        </jaxrs:providers>
+    </jaxrs:server>
 
-	<jaxrs:server id="view" address="/">
-		<jaxrs:serviceBeans>
-			<bean class="uk.ac.warwick.radio.media.webcams.server.endpoints.View">
-				<constructor-arg>
-					<ref bean="cameras" />
-				</constructor-arg>
-			</bean>
-			<bean class="uk.ac.warwick.radio.media.webcams.server.endpoints.Publish">
-				<constructor-arg>
-					<ref bean="cameras" />
-				</constructor-arg>
-			</bean>
-			<bean class="uk.ac.warwick.radio.media.webcams.server.endpoints.Archive">
-				<constructor-arg>
-					<ref bean="historyDao" />
-				</constructor-arg>
-			</bean>
-		</jaxrs:serviceBeans>
-		<jaxrs:properties>
-			<entry key="mtom-enabled" value="true" />
-			<entry key="mtom-threshold" value="0" />
-		</jaxrs:properties>
-		<jaxrs:providers>
-			<bean
-				class="uk.ac.warwick.radio.media.webcams.server.providers.DateParameterHandler" />
-			<bean
-				class="uk.ac.warwick.radio.media.webcams.server.providers.ArchiveExceptionMapper" />
-			<bean
-				class="uk.ac.warwick.radio.media.webcams.server.providers.IOExceptionMapper" />
-			<bean
-				class="uk.ac.warwick.radio.media.webcams.server.providers.ViewExceptionMapper" />
-		</jaxrs:providers>
-	</jaxrs:server>
+    <context:component-scan base-package="uk.ac.warwick.radio.media.webcams"/>
 
-	<context:component-scan base-package="uk.ac.warwick.radio.media.webcams" />
+    <bean id="databaseConnection" class="org.apache.commons.dbcp.BasicDataSource">
+        <property name="driverClassName" value="org.postgresql.Driver"/>
+        <property name="url" value="jdbc:postgresql://localhost/[DATABASE]"/>
+        <property name="username" value="[USERNAME]"/>
+    </bean>
 
-	<bean id="databaseConnection" class="org.apache.commons.dbcp.BasicDataSource">
-		<property name="driverClassName" value="org.postgresql.Driver" />
-		<property name="url" value="jdbc:postgresql://localhost/[DATABASE]" />
-		<property name="username" value="[USERNAME]" />
-	</bean>
+    <bean id="sessionFactory"
+          class="org.springframework.orm.hibernate3.LocalSessionFactoryBean">
+        <property name="dataSource" ref="databaseConnection"/>
+        <property name="mappingResources">
+            <list>
+                <value>uk/ac/warwick/radio/media/webcams/server/mapping.hbm.xml</value>
+            </list>
+        </property>
+        <property name="hibernateProperties">
+            <props>
+                <!--				<prop key="hibernate.show_sql">true</prop>-->
+                <!--				<prop key="hibernate.hbm2ddl.auto">create</prop>-->
+                <prop key="hibernate.dialect">org.hibernate.dialect.PostgreSQLDialect</prop>
+                <prop key="hibernate.jdbc.use_streams_for_binary">true</prop>
+            </props>
+        </property>
+        <property name="lobHandler">
+            <bean class="org.springframework.jdbc.support.lob.DefaultLobHandler">
+                <property name="wrapAsLob" value="true"/>
+            </bean>
+        </property>
+    </bean>
 
-	<bean id="sessionFactory"
-		class="org.springframework.orm.hibernate3.LocalSessionFactoryBean">
-		<property name="dataSource" ref="databaseConnection" />
-		<property name="mappingResources">
-			<list>
-				<value>uk/ac/warwick/radio/media/webcams/mapping.hbm.xml</value>
-			</list>
-		</property>
-		<property name="hibernateProperties">
-			<props>
-<!--				<prop key="hibernate.show_sql">true</prop>-->
-				<!--				<prop key="hibernate.hbm2ddl.auto">create</prop>-->
-				<prop key="hibernate.dialect">org.hibernate.dialect.PostgreSQLDialect</prop>
-				<prop key="hibernate.jdbc.use_streams_for_binary">true</prop>
-			</props>
-		</property>
-		<property name="lobHandler">
-			<bean class="org.springframework.jdbc.support.lob.DefaultLobHandler">
-				<property name="wrapAsLob" value="true" />
-			</bean>
-		</property>
-	</bean>
-
-	<bean id="transactionManager"
-		class="org.springframework.orm.hibernate3.HibernateTransactionManager">
-		<property name="sessionFactory">
-			<ref bean="sessionFactory" />
-		</property>
-	</bean>
-	<tx:annotation-driven transaction-manager="transactionManager" />
+    <bean id="transactionManager"
+          class="org.springframework.orm.hibernate3.HibernateTransactionManager">
+        <property name="sessionFactory">
+            <ref bean="sessionFactory"/>
+        </property>
+    </bean>
+    <tx:annotation-driven transaction-manager="transactionManager"/>
 </beans>

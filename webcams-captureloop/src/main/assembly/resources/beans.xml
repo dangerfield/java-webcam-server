@@ -1,56 +1,53 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <beans xmlns="http://www.springframework.org/schema/beans"
-	xmlns:util="http://www.springframework.org/schema/util" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-	xmlns:jaxrs="http://cxf.apache.org/jaxrs"
-	xsi:schemaLocation="
+       xmlns:util="http://www.springframework.org/schema/util" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+       xmlns:jaxrs="http://cxf.apache.org/jaxrs"
+       xsi:schemaLocation="
 		http://www.springframework.org/schema/beans 
 		http://www.springframework.org/schema/beans/spring-beans-3.0.xsd
 		http://www.springframework.org/schema/util 
 		http://www.springframework.org/schema/util/spring-util-3.0.xsd
 		http://cxf.apache.org/jaxrs
 		http://cxf.apache.org/schemas/jaxrs.xsd">
-		
-	<bean id="contextApplicationContextProvider"
-		class="uk.ac.warwick.radio.media.webcams.util.ApplicationContextProvider" />
 
-	<util:list id="containers">
-		<bean class="uk.ac.warwick.radio.media.webcams.local.SimpleContainer" scope="prototype">
-			<constructor-arg>
-				<!-- Address of server configured below -->
-				<jaxrs:client address="http://[SERVER]:[PORT]/"
-					serviceClass="uk.ac.warwick.radio.media.webcams.server.endpoints.IPublish"
-					inheritHeaders="true">
-					<jaxrs:properties>
-						<entry key="mtom-enabled" value="true" />
-						<entry key="mtom-threshold" value="0" />
-						<entry key="faultStackTraceEnabled" value="false" />
-					</jaxrs:properties>
-				</jaxrs:client>
-			</constructor-arg>
-			<!-- Loop Configuration -->
-			<constructor-arg>
-				<util:properties scope="prototype">
-					<prop key="refreshRate">2500</prop>
-					<prop key="maxUploadDelay">1000</prop>
-				</util:properties>
-			</constructor-arg>
-			<!-- Cameras -->
-			<constructor-arg>
-				<util:list scope="prototype">
-					<bean class="uk.ac.warwick.radio.media.webcams.local.types.XugglerCamera" scope="prototype">
-						<constructor-arg value="[SLUG]" />
-						<constructor-arg value="[NAME]" />
-						<constructor-arg value="video4linux2" />
-						<constructor-arg value="/dev/video0" />
-						<constructor-arg value="1" />
-					</bean>
-					<bean class="uk.ac.warwick.radio.media.webcams.local.types.IPCamera" scope="prototype">
-						<constructor-arg value="[SLUG]" />
-						<constructor-arg value="[NAME]" />
-						<constructor-arg value="http://[IP]/image.jpg" />
-					</bean>
-				</util:list>
-			</constructor-arg>
-		</bean>
-	</util:list>
+    <util:list id="containers">
+        <bean class="uk.ac.warwick.radio.media.webcams.local.SimpleContainer" scope="prototype">
+            <constructor-arg>
+                <!-- Address of server configured below -->
+                <jaxrs:client address="http://[SERVER]:[PORT]/"
+                              serviceClass="uk.ac.warwick.radio.media.webcams.server.endpoints.IPublish"
+                              inheritHeaders="true">
+                    <jaxrs:properties>
+                        <entry key="mtom-enabled" value="true"/>
+                        <entry key="mtom-threshold" value="0"/>
+                        <entry key="faultStackTraceEnabled" value="false"/>
+                    </jaxrs:properties>
+                </jaxrs:client>
+            </constructor-arg>
+            <!-- Loop Configuration -->
+            <constructor-arg>
+                <util:properties scope="prototype">
+                    <prop key="refreshRate">2500</prop>
+                    <prop key="maxUploadDelay">1000</prop>
+                </util:properties>
+            </constructor-arg>
+            <!-- Cameras -->
+            <constructor-arg>
+                <util:list scope="prototype">
+                    <bean class="uk.ac.warwick.radio.media.webcams.local.types.XugglerCamera" scope="prototype">
+                        <constructor-arg value="[SLUG]"/>
+                        <constructor-arg value="[NAME]"/>
+                        <constructor-arg value="video4linux2"/>
+                        <constructor-arg value="/dev/video0"/>
+                        <constructor-arg value="1"/>
+                    </bean>
+                    <bean class="uk.ac.warwick.radio.media.webcams.local.types.IPCamera" scope="prototype">
+                        <constructor-arg value="[SLUG]"/>
+                        <constructor-arg value="[NAME]"/>
+                        <constructor-arg value="http://[IP]/image.jpg"/>
+                    </bean>
+                </util:list>
+            </constructor-arg>
+        </bean>
+    </util:list>
 </beans>

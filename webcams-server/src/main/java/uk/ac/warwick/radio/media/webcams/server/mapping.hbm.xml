@@ -1,0 +1,20 @@
+<!DOCTYPE hibernate-mapping PUBLIC
+        "-//Hibernate/Hibernate Mapping DTD 3.0//EN"
+        "http://www.hibernate.org/dtd/hibernate-mapping-3.0.dtd">
+
+<hibernate-mapping package="uk.ac.warwick.radio.media.webcams">
+	<class name="Webcam" table="WEBCAM">
+		<id name="id" column="CAMERA" type="string"/>
+		<property name="name" column="NAME" not-null="true" type="string" />
+	</class>
+
+	<class name="Image" table="IMAGE">
+		<composite-id>
+			<key-many-to-one name="camera" column="CAMERA"
+				class="uk.ac.warwick.radio.media.webcams.Webcam" lazy="false"/>
+			<key-property name="time" column="CAPTURE_TIME" type="timestamp"/>
+		</composite-id>
+		<property name="raw" column="IMAGE" type="org.springframework.orm.hibernate3.support.BlobByteArrayType" not-null="true" />
+	</class>
+
+</hibernate-mapping>

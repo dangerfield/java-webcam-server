@@ -1,128 +1,142 @@
 package uk.ac.warwick.radio.media.webcams.local;
 
-import java.util.*;
-
-import javax.ws.rs.core.Response;
+import com.google.common.util.concurrent.Monitor;
+import com.google.common.util.concurrent.Uninterruptibles;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import uk.ac.warwick.radio.media.webcams.Image;
 import uk.ac.warwick.radio.media.webcams.MultipleImages;
 import uk.ac.warwick.radio.media.webcams.server.endpoints.IPublish;
 
+import javax.ws.rs.core.Response;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.Properties;
+import java.util.Timer;
+import java.util.TimerTask;
+import java.util.concurrent.TimeUnit;
+
 public class SimpleContainer implements ICameraContainer {
     final Logger logger = LoggerFactory.getLogger(SimpleContainer.class);
 
-  protected IPublish client;
-  protected ArrayList<Timer> timers = new ArrayList<Timer>();
-  protected Properties properties;
-  protected SubmitThread submission = new SubmitThread();
+    protected IPublish client;
+    protected ArrayList<Timer> timers = new ArrayList<Timer>();
+    protected Properties properties;
+    protected SubmitThread submission = new SubmitThread();
 
-  public SimpleContainer(Properties properties, IPublish client,
-      Collection<LocalWebcam> cameras) {
+    public SimpleContainer(Properties properties, IPublish client,
+                           Collection<LocalWebcam> cameras) {
 
-    this.properties = properties;
+        this.properties = properties;
 
-    this.client = client;
+        this.client = client;
 
-    for (LocalWebcam camera : cameras)
-      this.addCamera(camera);
+        for (LocalWebcam camera : cameras)
+            this.addCamera(camera);
 
-    this.submission.start();
+        this.submission.start();
 
-  }
-
-  protected void addCamera(LocalWebcam camera) {
-    Timer timer = new Timer();
-    
-    timer.schedule(new CaptureTask(camera), Integer.parseInt(properties
-        .getProperty("initialDelay", "1000")), Integer.parseInt(properties
-            .getProperty("frameRate", "5000")));
-    
-    timers.add(timer);
-  }
-
-  protected class Container {
-    protected Map<String, Image> data = initMap();
-    protected Object notifyObject = new Object();
-
-    protected Map<String, Image> initMap() {
-        return Collections.synchronizedMap(new HashMap<String, Image>());
-    }
-    public synchronized Collection<Image> pull() {
-      Collection<Image> old = data.values();
-      data = initMap();
-      return old;
     }
 
-    public synchronized void put(Image upload) {
-      if (data.containsKey(upload.getCamera().getId())) {
-        logger.warn("{} frame dropped", upload.getCamera().getId());
-      }
-      data.put(upload.getCamera().getId(), upload);
-      synchronized (notifyObject) {
-        notifyObject.notify();
-      }
+    protected void addCamera(LocalWebcam camera) {
+        Timer timer = new Timer();
+
+        timer.schedule(new CaptureTask(camera), Integer.parseInt(properties
+                .getProperty("initialDelay", "1000")), Integer.parseInt(properties
+                .getProperty("frameRate", "5000")));
+
+        timers.add(timer);
     }
 
-    public void blockUntilNotEmpty() {
-      synchronized (notifyObject) {
-        while (data.isEmpty()) {
-          try {
-            notifyObject.wait();
-          } catch (InterruptedException e) {
-          }
+    protected class Container {
+        protected Map<String, Image> data = Collections.synchronizedMap(new HashMap<String, Image>());
+        protected final Monitor monitor = new Monitor();
+        protected final Monitor.Guard notEmpty = new Monitor.Guard(monitor) {
+            @Override
+            public boolean isSatisfied() {
+                return data.size() > 0;
+            }
+        };
+
+        public Collection<Image> pull() {
+            monitor.enter();
+            try {
+                Collection<Image> old = new ArrayList(data.values());
+                data.clear();
+                return old;
+            } finally {
+                monitor.leave();
+            }
+
         }
-      }
-    }
-  }
 
-  protected Container data = new Container();
-
-  protected class SubmitThread extends Thread {
-    @Override
-    public void run() {
-      while (true) {
-        data.blockUntilNotEmpty();
-        try {
-          Thread.sleep(Integer.parseInt(properties.getProperty(
-              "maxUploadDelay", "1000")));
-        } catch (InterruptedException e) {
+        public void put(Image upload) {
+            monitor.enter();
+            try {
+                if (data.containsKey(upload.getCamera().getId())) {
+                    logger.warn("{} frame dropped", upload.getCamera().getId());
+                }
+                data.put(upload.getCamera().getId(), upload);
+            } finally {
+                monitor.leave();
+            }
         }
-        try {         
-          Response response = client.massUpdate(new MultipleImages(data
-              .pull()));
-          if (response.getStatus() != 200) {
-            logger.error(
-                    "Error in uploading frames. Recieved response {} from server",
-                    response.getStatus());
-          }
-        } catch (org.apache.cxf.interceptor.Fault e) {
-            logger.error("Error in uploading frames. connection problem");
+
+        public void blockUntilNotEmpty() {
+            monitor.waitForUninterruptibly(notEmpty);
         }
-      }
-    }
-  }
-
-  protected class CaptureTask extends TimerTask {
-    LocalWebcam camera;
-
-    public CaptureTask(LocalWebcam camera) {
-      this.camera = camera;
     }
 
-    @Override
-    public void run() {
-      try {
-        data.put(this.camera.getImage());
-      } catch (ImageCaptureException e) {
-          logger.error(
-                "Error in capturing image on camera {}. Capture exception was thrown",
-                this.camera.getId());
-        e.printStackTrace();
-      } catch (Throwable e) {
-          logger.error("Error in capturing image on camera {}. Exception was thrown",
-                  this.camera.getId());
-      }
+    protected Container data = new Container();
+
+    protected class SubmitThread extends Thread {
+        @Override
+        public void run() {
+            while (true) {
+                data.blockUntilNotEmpty();
+
+                Uninterruptibles.sleepUninterruptibly(Long.parseLong(properties.getProperty(
+                        "maxUploadDelay", "1000")), TimeUnit.MILLISECONDS);
+
+
+                try {
+                    Response response = client.massUpdate(new MultipleImages(data
+                            .pull()));
+                    if (response.getStatus() != 200) {
+                        logger.error(
+                                "Error in uploading frames. Recieved response {} from server",
+                                response.getStatus());
+                    }
+                } catch (org.apache.cxf.interceptor.Fault e) {
+                    logger.error("Error in uploading frames. connection problem", e);
+                }
+            }
+        }
     }
-  }
+
+    protected class CaptureTask extends TimerTask {
+        LocalWebcam camera;
+
+        public CaptureTask(LocalWebcam camera) {
+            this.camera = camera;
+        }
+
+        @Override
+        public void run() {
+            try {
+                data.put(this.camera.getImage());
+            } catch (ImageCaptureException e) {
+                logger.error(
+                        "Error in capturing image on camera {}. Capture exception was thrown",
+                        this.camera.getId(), e);
+                e.printStackTrace();
+            } catch (Throwable e) {
+                logger.error("Error in capturing image on camera {}. Exception was thrown",
+                        this.camera.getId(), e);
+            }
+        }
+    }
 }
