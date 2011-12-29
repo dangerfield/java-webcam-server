@@ -109,7 +109,7 @@ public class SimpleContainer implements ICameraContainer {
                             .pull()));
                     if (response.getStatus() != 200) {
                         logger.error(
-                                "Error in uploading frames. Received response {} from server",
+                                "Error in uploading frames. Received response \"{}\" from server",
                                 response.getStatus());
                     }
                 } catch (Throwable e) {
@@ -133,12 +133,12 @@ public class SimpleContainer implements ICameraContainer {
                 data.put(this.camera.getImage());
             } catch (ImageCaptureException e) {
                 logger.error(
-                        "Error in capturing image on camera {}. {}.",
+                        "Error in capturing image on camera \"{}\". {}.",
                         this.camera.getId(), e.getMessage());
-                logger.debug("Error in capturing image on camera {}. Thrown exception:", this.camera.getId(), e);
+                logger.debug("Error in capturing image on camera \"{}\". Thrown exception:", this.camera.getId(), e);
             } catch (Throwable e) {
-                logger.error("Error in capturing image on camera {}. Reason unknown.", this.camera.getId());
-                logger.debug("Error in capturing image on camera {}. Thrown exception:", this.camera.getId(), e);
+                logger.error("Error in capturing image on camera \"{}\". Reason unknown.", this.camera.getId());
+                logger.debug("Error in capturing image on camera \"{}\". Thrown exception:", this.camera.getId(), e);
             }
         }
     }

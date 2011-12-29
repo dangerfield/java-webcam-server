@@ -24,7 +24,7 @@ public class RemoteWebcams {
                 @Override
                 public void onRemoval(RemovalNotification<String, Image> objectObjectRemovalNotification) {
                     if (!objectObjectRemovalNotification.getCause().equals(RemovalCause.REPLACED))
-                        logger.info("Camera {} has been removed from the live view.", objectObjectRemovalNotification.getValue().getCamera().getId());
+                        logger.info("Camera \"{}\" has been removed from the live view.", objectObjectRemovalNotification.getValue().getCamera().getId());
                 }
             }).build();
 
@@ -59,7 +59,7 @@ public class RemoteWebcams {
 
     public synchronized void set(Image image) {
         if (!contains(image.getCamera().getId()))
-            logger.info("Camera {} has been added to live view.", image.getCamera().getId());
+            logger.info("Camera \"{}\" has been added to live view.", image.getCamera().getId());
         remoteWebcams.put(image.getCamera().getId(), image);
         if (persister != null)
             persister.trySave(image);
