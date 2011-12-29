@@ -29,6 +29,7 @@
                 <util:properties scope="prototype">
                     <prop key="refreshRate">2500</prop>
                     <prop key="maxUploadDelay">1000</prop>
+                    <prop key="frameRate">5000</prop>
                 </util:properties>
             </constructor-arg>
             <!-- Cameras -->

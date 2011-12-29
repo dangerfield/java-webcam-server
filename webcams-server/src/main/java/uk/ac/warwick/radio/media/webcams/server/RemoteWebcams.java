@@ -2,6 +2,10 @@ package uk.ac.warwick.radio.media.webcams.server;
 
 import com.google.common.cache.Cache;
 import com.google.common.cache.CacheBuilder;
+import com.google.common.cache.RemovalListener;
+import com.google.common.cache.RemovalNotification;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import uk.ac.warwick.radio.media.webcams.Image;
 import uk.ac.warwick.radio.media.webcams.MultipleImages;
 import uk.ac.warwick.radio.media.webcams.Webcam;
@@ -12,7 +16,15 @@ import java.util.Collection;
 import java.util.concurrent.TimeUnit;
 
 public class RemoteWebcams {
-    protected Cache<String, Image> remoteWebcams = CacheBuilder.newBuilder().expireAfterWrite(10, TimeUnit.MINUTES).build();
+    final Logger logger = LoggerFactory.getLogger(RemoteWebcams.class);
+    protected Cache<String, Image> remoteWebcams = CacheBuilder.newBuilder()
+            .expireAfterWrite(10, TimeUnit.MINUTES)
+            .removalListener(new RemovalListener<String, Image>() {
+                @Override
+                public void onRemoval(RemovalNotification<String, Image> objectObjectRemovalNotification) {
+                    logger.info("Camera {} has been removed from the live view.", objectObjectRemovalNotification.getValue().getCamera().getId());
+                }
+            }).build();
 
     protected Persister persister;
 
@@ -43,7 +55,9 @@ public class RemoteWebcams {
         return new Webcams(webcams);
     }
 
-    public void set(Image image) {
+    public synchronized void set(Image image) {
+        if (!contains(image.getCamera().getId()))
+            logger.info("Camera {} has been added to live view.", image.getCamera().getId());
         remoteWebcams.put(image.getCamera().getId(), image);
         if (persister != null)
             persister.trySave(image);
