@@ -9,8 +9,6 @@
 		http://www.springframework.org/schema/context/spring-context-3.0.xsd
 		http://www.springframework.org/schema/tx
 		http://www.springframework.org/schema/tx/spring-tx-3.0.xsd
-
-
 		http://cxf.apache.org/jaxrs
 		http://cxf.apache.org/schemas/jaxrs.xsd">
 
@@ -52,6 +50,7 @@
                     <ref bean="historyDao"/>
                 </constructor-arg>
             </bean>
+            <bean class="uk.ac.warwick.radio.media.webcams.server.endpoints.Root"/>
         </jaxrs:serviceBeans>
         <jaxrs:properties>
             <entry key="mtom-enabled" value="true"/>

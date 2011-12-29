@@ -1,0 +1,267 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+<script src="https://ajax.googleapis.com/ajax/libs/jquery/1.6.4/jquery.min.js"></script>
+<script>
+    webcams = {
+        objects:{}
+    };
+    webcams.prefferedOrder = ['studio1-dj', 'studio1-guest', 'studio1-desk', 'studio2-dj', 'studio2-guest', 'studio2-desk', 'edit', 'wtv', 'foyer', 'storage', 'cta'];
+    webcams.sync = function () {
+        $.ajax({
+            url:"view",
+            success:function (data) {
+                var newobjects = {}, updated = [], existing = [];
+                $(data).find('webcam[id][name]').each(function (index, domElement) {
+                    newobjects[$(domElement).attr('id')] = {id:$(domElement).attr('id'), name:$(domElement).attr('name')};
+                    updated.push($(domElement).attr('id'));
+                });
+                for (camera in webcams.objects) {
+                    if (webcams.objects[camera].data('id'))
+                        existing.push(webcams.objects[camera].data('id'));
+                }
+                for (camera in existing) {
+                    if ($.inArray(existing[camera], updated) < 0)
+                        webcams.objects[existing[camera]].webcamRemove();
+                }
+                for (camera in updated) {
+                    if ($.inArray(updated[camera], existing) < 0)
+                        webcams.objects[updated[camera]] = webcams.add(newobjects[updated[camera]]);
+                }
+            }
+        });
+    };
+    webcams.add = function (cameraData) {
+        var imageUrl = 'view/' + cameraData.id + '?overlay=true';
+
+        var insert = $('<div style="display: none;" class="camera"></div>')
+                .data('id', cameraData.id)
+                .append(
+                $('<img src="' + imageUrl + '" alt="' + cameraData.name + '"/>')
+                        .load(
+                        function () {
+                            $(this)
+                                    .unbind('load')
+                                    .load(function () {
+                                        $(this).parent().webcamAutoExpire();
+                                    })
+                                    .parent()
+                                    .webcamAutoExpire()
+                                    .fadeIn('slow');
+                        })
+                        .error(function () {
+                            $(this).parent().webcamRemove();
+                        })
+        )
+                .click(function () {
+                    $(this).webcamRefresh();
+                    if ($(this).hasClass('active'))
+                        $(this).webcamDisable();
+                    else
+                        $(this).webcamEnable();
+                })
+                .dblclick(function () {
+                    $(this).webcamLargeShow()
+                });
+
+        var f = function () {
+            var a = $.inArray(cameraData.id, webcams.prefferedOrder);
+            if (a < 0)
+                $('#webcam-container').append(insert);
+            else {
+                var b = [];
+                for (i = a; i >= 0; i--)
+                    if (webcams.objects[webcams.prefferedOrder[i]]) {
+                        webcams.objects[webcams.prefferedOrder[i]].after(insert);
+                        return;
+                    }
+                $('#webcam-container').prepend(insert);
+            }
+        }
+        f();
+        return insert;
+    }
+    jQuery.fn.webcamRemove = function () {
+        this.fadeOut("fast", function () {
+            $(this).remove();
+        });
+        if (this.data('timeouts.autoDisable'))
+            clearTimeout(this.data('timeouts.autoDisable'));
+        if (this.data('timeouts.expire'))
+            clearTimeout(this.data('timeouts.expire'));
+        return this;
+    }
+    jQuery.fn.webcamEnable = function () {
+        var p = this.addClass('active');
+        this.data('timeouts.autoDisable', setTimeout(function () {
+            p.webcamDisable();
+        }, 20 * 60 * 1000));
+        return this;
+    }
+    jQuery.fn.webcamDisable = function () {
+        this.removeClass('active');
+        if (this.data('timeouts.autoDisable'))
+            clearTimeout(this.data('timeouts.autoDisable'));
+        return this;
+    }
+    jQuery.fn.webcamAutoExpire = function () {
+        var p = this
+                .removeClass('expired')
+                .fadeTo('fast', 1);
+        if (this.data('timeouts.expire'))
+            clearTimeout(this.data('timeouts.expire'));
+        this.data('timeouts.expire', setTimeout(function () {
+            p.webcamExpire();
+        }, 10 * 1000));
+        return this;
+    }
+    jQuery.fn.webcamExpire = function () {
+        this.fadeTo('slow', 0.4, function () {
+            $(this).addClass('expired');
+        });
+        return this;
+    }
+    jQuery.fn.webcamRefresh = function () {
+        var dom = this.find('img');
+        time = new Date();
+        c = dom.attr('src').split("&refresh=");
+        dom.attr('src', c[0].concat("&refresh=").concat(time.getTime()));
+        return this;
+    }
+    jQuery.fn.webcamLargeShow = function () {
+        var hide = function () {
+            if (overlay)    overlay.fadeOut('fast', function () {
+                overlay.remove();
+            });
+            if (popup)    popup.fadeOut('fast', function () {
+                popup.remove();
+            });
+        };
+        hide();
+        var popup = $('<div></div>')
+                .attr('id', 'large')
+                .addClass('camera')
+                .css('visibility', 'hidden')
+                .append(
+                $('<img src="view/' + this.data('id') + '/big?overlay=true">')
+                        .load(
+                        function () {
+                            overlay.fadeIn('fast');
+                            $(this).unbind('load')
+                                    .parent()
+                                    .css('margin-top', Math.round(-$('#large img').height() / 2) - 10 + 'px')
+                                    .css('margin-left', Math.round(-$('#large img').width() / 2) - 10 + 'px')
+                                    .hide()
+                                    .css('visibility', 'visible')
+                                    .fadeIn('fast');
+                        }
+                ).error(function () {
+                            hide();
+                        })
+        )
+                .prependTo('body')
+                .addClass('active')
+                .click(function () {
+                    hide();
+                });
+        var overlay = $('<div></div>')
+                .css({height:'100%', width:'100%', position:'fixed', left:0, top:0, 'z-index':2, opacity:0.5, 'background-color':'#000'})
+                .hide()
+                .prependTo('body')
+                .click(function () {
+                    hide();
+                });
+        return this;
+    }
+    $(document).ready(function () {
+        webcams.sync();
+        setInterval(
+                function () {
+                    $('#webcam-container div.active, #large').each(function () {
+                        $(this).webcamRefresh();
+                    });
+                },
+                5 * 1000);
+        setInterval(function () {
+            webcams.sync();
+        }, 60 * 1000);
+        setInterval(
+                function () {
+                    $('#webcam-container div').not($('#webcam-container div.active')).each(function () {
+                        $(this).webcamRefresh();
+                    });
+                },
+                5 * 60 * 1000);
+        $('#forceRefresh').click(function () {
+            $('#webcam-container div').each(function () {
+                $(this).webcamRefresh();
+            });
+        });
+    });
+</script>
+<title>Webcam Viewer</title>
+<style>
+    body {
+        font-family: Verdana, Arial, sans-serif;
+        text-align: center;
+    }
+
+    #webcam-container {
+        z-index: 1;
+    }
+
+    div.camera {
+        width: 320px;
+        height: 255px;
+        display: inline-block;
+        padding: 10px;
+        border: 1px solid #82B0FF;
+        background-color: #E0ECFF;
+        margin: 0 10px 10px 0;
+        cursor: pointer;
+        border-radius: 3px;
+    }
+
+    div.camera img {
+        display: block;
+    }
+
+    div.expired {
+        background-color: #ccc;
+        border-color: #999;
+    }
+
+    div.active {
+        background-color: #DBFFD6;
+        border-color: #AEFFA3;
+    }
+
+    form {
+        margin-bottom: 10px;
+    }
+
+    #large {
+        position: fixed;
+        top: 50%;
+        left: 50%;
+        height: auto !important;
+        width: auto !important;
+        z-index: 3;
+    }
+</style>
+</head>
+<body>
+<div id="wrap">
+    <h1>Webcam Viewer</h1>
+
+    <p>Click cameras to enable auto refresh. Enabled cameras refresh every 5 seconds. Double click for bigger image.</p>
+
+    <form>
+        <input type="button" id="forceRefresh" value="Refresh All"/>
+    </form>
+    <div id="webcam-container"></div>
+    <div style="clear: both;"></div>
+</div>
+</body>
+</html>
