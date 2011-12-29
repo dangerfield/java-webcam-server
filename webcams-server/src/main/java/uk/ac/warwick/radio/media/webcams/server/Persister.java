@@ -26,13 +26,13 @@ public class Persister extends Thread {
                 temp.setRaw(new Imaging(temp).scaleAndCropTo(640, 480).get());
                 dao.saveImage(temp);
             } catch (Throwable e) {
-                logger.error("Exception in Image Persistence thread",e);
+                logger.debug("Exception in Image Persistence thread: ", e);
             }
         }
     }
 
     public void trySave(Image image) {
-        if(!this.queue.offer(image))
+        if (!this.queue.offer(image))
             logger.warn("Image Persistence has run out of space. Write latency is too high or queue size is too small");
     }
 }

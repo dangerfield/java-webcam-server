@@ -77,7 +77,7 @@ public class SimpleContainer implements ICameraContainer {
             monitor.enter();
             try {
                 if (data.containsKey(upload.getCamera().getId())) {
-                    logger.warn("{} frame dropped", upload.getCamera().getId());
+                    logger.warn("Frame dropped on camera {}", upload.getCamera().getId());
                 }
                 data.put(upload.getCamera().getId(), upload);
             } finally {
@@ -86,7 +86,9 @@ public class SimpleContainer implements ICameraContainer {
         }
 
         public void blockUntilNotEmpty() {
+            monitor.enter();
             monitor.waitForUninterruptibly(notEmpty);
+            monitor.leave();
         }
     }
 
@@ -107,11 +109,12 @@ public class SimpleContainer implements ICameraContainer {
                             .pull()));
                     if (response.getStatus() != 200) {
                         logger.error(
-                                "Error in uploading frames. Recieved response {} from server",
+                                "Error in uploading frames. Received response {} from server",
                                 response.getStatus());
                     }
-                } catch (org.apache.cxf.interceptor.Fault e) {
-                    logger.error("Error in uploading frames. connection problem", e);
+                } catch (Throwable e) {
+                    logger.error("Error in uploading frames. Reason unknown.");
+                    logger.debug("Error in uploading frames. Thrown Exception:", e);
                 }
             }
         }
@@ -130,12 +133,12 @@ public class SimpleContainer implements ICameraContainer {
                 data.put(this.camera.getImage());
             } catch (ImageCaptureException e) {
                 logger.error(
-                        "Error in capturing image on camera {}. Capture exception was thrown",
-                        this.camera.getId(), e);
-                e.printStackTrace();
+                        "Error in capturing image on camera {}. {}.",
+                        this.camera.getId(), e.getMessage());
+                logger.debug("Error in capturing image on camera {}. Thrown exception:", this.camera.getId(), e);
             } catch (Throwable e) {
-                logger.error("Error in capturing image on camera {}. Exception was thrown",
-                        this.camera.getId(), e);
+                logger.error("Error in capturing image on camera {}. Reason unknown.", this.camera.getId());
+                logger.debug("Error in capturing image on camera {}. Thrown exception:", this.camera.getId(), e);
             }
         }
     }

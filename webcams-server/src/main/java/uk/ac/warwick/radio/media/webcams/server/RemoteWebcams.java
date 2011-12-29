@@ -2,6 +2,7 @@ package uk.ac.warwick.radio.media.webcams.server;
 
 import com.google.common.cache.Cache;
 import com.google.common.cache.CacheBuilder;
+import com.google.common.cache.RemovalCause;
 import com.google.common.cache.RemovalListener;
 import com.google.common.cache.RemovalNotification;
 import org.slf4j.Logger;
@@ -22,7 +23,8 @@ public class RemoteWebcams {
             .removalListener(new RemovalListener<String, Image>() {
                 @Override
                 public void onRemoval(RemovalNotification<String, Image> objectObjectRemovalNotification) {
-                    logger.info("Camera {} has been removed from the live view.", objectObjectRemovalNotification.getValue().getCamera().getId());
+                    if (!objectObjectRemovalNotification.getCause().equals(RemovalCause.REPLACED))
+                        logger.info("Camera {} has been removed from the live view.", objectObjectRemovalNotification.getValue().getCamera().getId());
                 }
             }).build();
 

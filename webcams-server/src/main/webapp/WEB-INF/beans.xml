@@ -73,8 +73,8 @@
 
     <bean id="databaseConnection" class="org.apache.commons.dbcp.BasicDataSource">
         <property name="driverClassName" value="org.postgresql.Driver"/>
-        <property name="url" value="jdbc:postgresql://localhost/[DATABASE]"/>
-        <property name="username" value="[USERNAME]"/>
+        <property name="url" value="jdbc:postgresql://localhost/webcam-log"/>
+        <property name="username" value="logger"/>
     </bean>
 
     <bean id="sessionFactory"
