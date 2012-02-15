@@ -1,11 +1,14 @@
 package uk.ac.warwick.radio.media.webcams.local.types;
 
-import org.apache.commons.io.IOUtils;
+import com.google.common.io.ByteStreams;
+import com.google.common.io.InputSupplier;
 import org.apache.http.HttpResponse;
 import org.apache.http.client.ClientProtocolException;
 import org.apache.http.client.HttpClient;
 import org.apache.http.client.methods.HttpGet;
 import org.apache.http.impl.client.DefaultHttpClient;
+import org.apache.http.impl.client.DefaultHttpRequestRetryHandler;
+import org.apache.http.params.HttpParams;
 import uk.ac.warwick.radio.media.webcams.Image;
 import uk.ac.warwick.radio.media.webcams.local.ImageCaptureException;
 import uk.ac.warwick.radio.media.webcams.local.LocalWebcam;
@@ -21,7 +24,16 @@ public class IPCamera extends LocalWebcam {
     private static final long serialVersionUID = -1343179666638835136L;
     protected String imageURL;
     protected HttpGet httpget;
-    protected HttpClient client = new DefaultHttpClient();
+    static protected HttpClient client = new DefaultHttpClient();
+
+    static {
+        HttpParams params = client.getParams();
+        params.setParameter("http.socket.timeout", 3000);
+        params.setParameter("http.connection.timeout", 3000);
+        params.setParameter("http.connection-manager.timeout", 3000);
+        params.setParameter("http.useragent", "WEBCAMLOOP");
+        params.setParameter("http.method.retry-handler", new DefaultHttpRequestRetryHandler(1, false));
+    }
 
     public IPCamera(String identifier, String name, String imageURL) {
         super(identifier, name);
@@ -33,14 +45,16 @@ public class IPCamera extends LocalWebcam {
     public Image getData() throws ImageCaptureException {
 
         try {
-            HttpResponse responce = client.execute(httpget);
+            final HttpResponse responce = client.execute(httpget);
             if (responce.getStatusLine().getStatusCode() != 200)
                 throw new ImageCaptureException();
 
-            InputStream stream = responce.getEntity().getContent();
-            byte[] image = IOUtils.toByteArray(stream);
-            stream.close();
-            return new Image(image);
+            return new Image(ByteStreams.toByteArray(new InputSupplier<InputStream>() {
+                @Override
+                public InputStream getInput() throws IOException {
+                    return responce.getEntity().getContent();
+                }
+            }));
         } catch (ClientProtocolException e) {
             throw new ImageCaptureException(e);
         } catch (IOException e) {
