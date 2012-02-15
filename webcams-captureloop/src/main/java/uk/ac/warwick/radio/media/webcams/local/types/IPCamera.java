@@ -24,21 +24,20 @@ public class IPCamera extends LocalWebcam {
     private static final long serialVersionUID = -1343179666638835136L;
     protected String imageURL;
     protected HttpGet httpget;
-    static protected HttpClient client = new DefaultHttpClient();
+    protected HttpClient client = new DefaultHttpClient();
 
-    static {
+
+    public IPCamera(String identifier, String name, String imageURL) {
+        super(identifier, name);
+        this.imageURL = imageURL;
+        this.httpget = new HttpGet(imageURL);
+
         HttpParams params = client.getParams();
         params.setParameter("http.socket.timeout", 3000);
         params.setParameter("http.connection.timeout", 3000);
         params.setParameter("http.connection-manager.timeout", 3000);
         params.setParameter("http.useragent", "WEBCAMLOOP");
         params.setParameter("http.method.retry-handler", new DefaultHttpRequestRetryHandler(1, false));
-    }
-
-    public IPCamera(String identifier, String name, String imageURL) {
-        super(identifier, name);
-        this.imageURL = imageURL;
-        this.httpget = new HttpGet(imageURL);
     }
 
     @Override
